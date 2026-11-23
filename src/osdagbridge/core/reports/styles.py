@@ -7,6 +7,9 @@ in the report and analysis modules.
 # Page geometry
 PAGE_SIZE = "a4paper"
 PAGE_MARGIN = "1in"
+PAGE_BOTTOM = "1.15in"
+PAGE_FOOTSKIP = "24pt"
+PAGE_HEADSEP = "12pt"
 
 # Table layout
 TABLE_COL_PADDING = "6pt"
@@ -36,3 +39,15 @@ PAGE_NUMBER_FORMAT = r"Page \thepage\ of \pageref{LastPage}"
 # Table page-break safety
 TABLE_NEEDSPACE = r"5\baselineskip"
 
+# Extra bottom clearance for longtable rows above the footer.
+TABLE_BOTTOM_CLEARANCE = "1.15in"
+
+# Chapter 7 bill-of-materials table: total width stays within the text block.
+BOM_TABLE_SPEC = r"|C{0.7cm}|L{3.1cm}|C{1.7cm}|C{1.1cm}|C{1.5cm}|C{1.3cm}|C{1.5cm}|"
+
+# Charts
+CHART_FIGURE_SIZE = (8.0, 4.5)
+CHART_DPI = 150
+CHART_PASS_COLOR = "#4C9F70"
+CHART_FAIL_COLOR = "#D64545"
+CHART_THRESHOLD_COLOR = "red"

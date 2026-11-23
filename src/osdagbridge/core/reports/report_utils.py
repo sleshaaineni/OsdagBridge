@@ -187,7 +187,7 @@ def _fig_or_placeholder(path, caption, width=r'0.9\textwidth'):
     return (r'\begin{figure}[H]' + '\n'
             r'\centering' + '\n'
             r'\fbox{\parbox{0.97\textwidth}{' + '\n'
-            r'\textit{[ PLACEHOLDER: ' + caption + r' ]}' + '\n'
+            r'\centering\textit{Figure unavailable for this design run.}' + '\n'
             r'}}' + '\n'
             r'\caption*{' + caption + '}\n'
             r'\end{figure}')
@@ -207,7 +207,7 @@ def _fig_embed(path, caption, width=r'\textwidth', height=None):
                 r'\caption*{\small ' + caption + '}\n'
                 r'\vspace{-0.5em}' + '\n'
                 r'\end{figure}')
-    # fbox placeholder — matches template exactly
+    # Keep missing optional assets explicit without exposing template language.
     return (r'\noindent\fbox{\parbox{0.97\textwidth}{' + '\n'
-            r'\textit{[ PLACEHOLDER: ' + caption + r' ]}' + '\n'
+            r'\centering\textit{Figure unavailable for this design run.}' + '\n'
             r'}}')

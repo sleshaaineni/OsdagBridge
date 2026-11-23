@@ -99,7 +99,7 @@ This section documents all inputs provided to OsdagBridge. User-provided inputs 
 \begin{table}[H]
 \caption{\textbf{Project Location}}
 \label{subsec:project-location}
-\begin{tabular}{|L{5.5cm}|L{8.5cm}|}
+\begin{tabular}{|L{5.5cm}|L{10.0cm}|}
 \hline
 \textbf{parameter} & \textbf{value} \\
 \hline
@@ -120,7 +120,7 @@ This section documents all inputs provided to OsdagBridge. User-provided inputs 
 \begin{table}[H]
 \caption{\textbf{Bridge Geometry}}
 \label{subsec:bridge-geometry}
-\begin{tabular}{|L{5.5cm}|L{8.5cm}|}
+\begin{tabular}{|L{5.5cm}|L{10.0cm}|}
 \hline
 \textbf{parameter} & \textbf{value} \\
 \hline
@@ -143,7 +143,7 @@ This section documents all inputs provided to OsdagBridge. User-provided inputs 
 \begin{table}[H]
 \caption{\textbf{Material Selection}}
 \label{subsec:material}
-\begin{tabular}{|L{5.5cm}|L{8.5cm}|}
+\begin{tabular}{|L{5.5cm}|L{10.0cm}|}
 \hline
 \textbf{parameter} & \textbf{value} \\
 \hline
@@ -237,20 +237,33 @@ def _girder_tables(input_dict, n_girders):
         )
     ]
 
+    def _dimension_mm(key):
+        """Render section dimensions in the table's declared millimetre unit.
+
+        The design data stores these section inputs in metres, while the
+        report table is explicitly labelled in millimetres.  This is a
+        presentation-only conversion; the stored design values are unchanged.
+        """
+        value = input_dict.get(key)
+        try:
+            return _tex(f"{float(value) * 1000.0:g} mm")
+        except (TypeError, ValueError):
+            return _tex(value)
+
     # Helper: one girder-dimension row
     def _dim_row(g_lbl, i):
         return (g_lbl + r""" & """
-                + (_render_value(input_dict, f"{KEY_MP_GIRDER_DEPTH}.G{i}.M1", ' mm'))
+                + _dimension_mm(f"{KEY_MP_GIRDER_DEPTH}.G{i}.M1")
                 + r""" & """
-                + (_render_value(input_dict, f"{KEY_MP_GIRDER_WEB_THICKNESS}.G{i}.M1", ' mm'))
+                + _dimension_mm(f"{KEY_MP_GIRDER_WEB_THICKNESS}.G{i}.M1")
                 + r""" & """
-                + (_render_value(input_dict, f"{KEY_MP_GIRDER_TOP_FLANGE_WIDTH}.G{i}.M1", ' mm'))
+                + _dimension_mm(f"{KEY_MP_GIRDER_TOP_FLANGE_WIDTH}.G{i}.M1")
                 + ', '
-                + (_render_value(input_dict, f"{KEY_MP_GIRDER_TOP_FLANGE_THICKNESS}.G{i}.M1", ' mm'))
+                + _dimension_mm(f"{KEY_MP_GIRDER_TOP_FLANGE_THICKNESS}.G{i}.M1")
                 + r""" & """
-                + (_render_value(input_dict, f"{KEY_MP_GIRDER_BOTTOM_FLANGE_WIDTH}.G{i}.M1", ' mm'))
+                + _dimension_mm(f"{KEY_MP_GIRDER_BOTTOM_FLANGE_WIDTH}.G{i}.M1")
                 + ', '
-                + (_render_value(input_dict, f"{KEY_MP_GIRDER_BOTTOM_FLANGE_THICKNESS}.G{i}.M1", ' mm'))
+                + _dimension_mm(f"{KEY_MP_GIRDER_BOTTOM_FLANGE_THICKNESS}.G{i}.M1")
                 + r""" \\[8pt]
 \hline
 """)

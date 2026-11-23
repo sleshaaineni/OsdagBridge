@@ -7,6 +7,7 @@ import logging
 
 from osdagbridge.core.utils.common import (
     KEY_CB_LOAD,
+    KEY_FOOTPATH,
     KEY_LL_CUSTOM_VEHICLES,
     KEY_LL_FOOTPATH_PRESSURE_MODE,
     KEY_LL_FOOTPATH_PRESSURE_VALUE,
@@ -155,7 +156,11 @@ def ch3_loads(input_dict):
         fp_str = f"{fp_value} kN/m²"
     else:
         fp_str = "N/A"
-    footpath_selected = str(fp_mode).strip().lower() not in ("", "none", "no")
+    # The pressure mode has a default value even when the bridge geometry has
+    # no footpath.  Geometry selection is therefore the source of truth for
+    # whether a footpath load belongs in the report.
+    footpath_config = str(input_dict.get(KEY_FOOTPATH, "None")).strip().lower()
+    footpath_selected = footpath_config not in ("", "none", "no")
     footpath_rows_tex = (
         r"\textnormal{Footpath Live Load} & " + _tex(fp_str) + r" \\[6pt]"
         if footpath_selected else r"\multicolumn{2}{|l|}{\textit{No footpath selected.}} \\[6pt]"

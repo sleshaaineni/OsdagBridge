@@ -37,7 +37,7 @@ def ch6_drawings(fig_paths):
         return (r'\begin{figure}[H]' + '\n'
                 r'\centering' + '\n'
                 r'\fbox{\parbox{0.97\textwidth}{' + '\n'
-                r'\textit{[ PLACEHOLDER: ' + ' ' + title + r' ]}' + '\n'
+                r'\centering\textit{Figure unavailable for this design run.}' + '\n'
                 r'}}' + '\n'
                 r'\caption{' + title + '}\n'
                 + label_tex
@@ -58,7 +58,7 @@ def ch6_drawings(fig_paths):
             p = path.replace('\\', '/')
             body = r'\includegraphics[width=\linewidth]{' + p + '}'
         else:
-            body = r'\fbox{\parbox{0.95\linewidth}{\centering\textit{[ ' + title + r' ]}}}'
+            body = r'\fbox{\parbox{0.95\linewidth}{\centering\textit{Figure unavailable for this design run.}}}'
         return (r'\begin{minipage}[t]{0.31\textwidth}' + '\n'
                 r'\centering' + '\n'
                 + body + '\n'

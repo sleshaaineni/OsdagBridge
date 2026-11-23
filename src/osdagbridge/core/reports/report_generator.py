@@ -157,7 +157,7 @@ def preamble(project_name, job_number, report_date, report_version='Rev 0'):
 \documentclass[__DOCUMENT_FONT_SIZE__,__PAGE_SIZE__]{report}
 
 % Packages
-\usepackage[__PAGE_SIZE__, margin=__PAGE_MARGIN__]{geometry}
+\usepackage[__PAGE_SIZE__, margin=__PAGE_MARGIN__, bottom=__PAGE_BOTTOM__, footskip=__PAGE_FOOTSKIP__, headsep=__PAGE_HEADSEP__]{geometry}
 \usepackage{graphicx}
 \usepackage{amsmath}
 \usepackage{amssymb}
@@ -279,6 +279,9 @@ def preamble(project_name, job_number, report_date, report_version='Rev 0'):
         '__DOCUMENT_FONT_SIZE__': styles.DOCUMENT_FONT_SIZE,
         '__PAGE_SIZE__': styles.PAGE_SIZE,
         '__PAGE_MARGIN__': styles.PAGE_MARGIN,
+        '__PAGE_BOTTOM__': styles.PAGE_BOTTOM,
+        '__PAGE_FOOTSKIP__': styles.PAGE_FOOTSKIP,
+        '__PAGE_HEADSEP__': styles.PAGE_HEADSEP,
         '__TABLE_COL_PADDING__': styles.TABLE_COL_PADDING,
         '__TABLE_ROW_STRETCH__': styles.TABLE_ROW_STRETCH,
         '__LONGTABLE_PRE_SKIP__': styles.LONGTABLE_PRE_SKIP,
@@ -374,6 +377,9 @@ def toc_section():
 \titleformat{\chapter}[block]
   {\normalfont\Large\bfseries\centering}{\thechapter}{1em}{}
 \titlespacing*{\chapter}{0pt}{0pt}{10pt}
+\titleformat{\section}[block]
+  {\normalfont\Large\bfseries}{\thesection}{1em}{}
+\titlespacing*{\section}{0pt}{12pt}{6pt}
 \setcounter{tocdepth}{2}
 
 % TOC styling using titletoc

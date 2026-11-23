@@ -968,7 +968,10 @@ class PlateGirderBridge:
 
     def generate_design_report(self, request, cad_generator, is_preview=False):
         """Compile the final PDF design report."""
+        import logging
         from osdagbridge.core.reports.report_generator import build_report_payload, generate_report
+
+        report_log = logging.getLogger(__name__)
 
         report_inputs = self.input_dict.copy()
         output_dict   = dict(self.output_dict)  # MappingProxyType → dict
@@ -984,10 +987,24 @@ class PlateGirderBridge:
 
         payload = build_report_payload(request, report_inputs, output_dict)
 
-        # Collect figure bytes into payload.figure_data — no disk writes here
+        # Collect report figures as bytes.  The CAD exporter owns the
+        # pythonOCC rendering lifecycle and returns only files that were
+        # successfully exported.  Keep unsupported views absent rather than
+        # mapping unrelated images into engineering figure slots.
         figure_data = {}
         if isinstance(cad_generator, dict):
             figure_data.update(cad_generator.get('figure_data', {}))
+        else:
+            try:
+                exported = self._export_cad_figures(cad_generator)
+                for name, path in exported.items():
+                    try:
+                        with open(path, 'rb') as figure_file:
+                            figure_data[name] = figure_file.read()
+                    except (OSError, TypeError) as exc:
+                        report_log.warning("Could not read exported report figure %s: %s", name, exc)
+            except Exception as exc:
+                report_log.warning("CAD figure export skipped during report generation: %s", exc)
 
         payload.figure_data = figure_data  # handed off; generate_report clears it after writing
 

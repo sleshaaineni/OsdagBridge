@@ -3,6 +3,10 @@
 # Extracted from report_generator.py — DO NOT add business logic here.
 # =============================================================================
 from __future__ import annotations
+import logging
+import os
+import re
+import tempfile
 from typing import TYPE_CHECKING
 
 from osdagbridge.core.utils.common import (
@@ -141,8 +145,11 @@ from osdagbridge.core.utils.common import (
 )
 
 from osdagbridge.core.reports.report_utils import (
-    _tex, _render_value, add_repeating_longtable_headers, get_girder_entries
+    _tex, _render_value, _fig_embed, add_repeating_longtable_headers, get_girder_entries
 )
+from osdagbridge.core.reports.charts import make_ur_chart
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     pass
@@ -243,7 +250,8 @@ def ch5_design_checks(checks_data, bridge) -> str:
     t54_rows = []
     for lbl, _ in girder_entries:
         t54_rows.append(
-            r"\multirow{8}{*}{\makecell{" + lbl + r"""}} & Applied Shear, $V_u$ & Governing LC (ULS) & """ + _render_value(bridge.output_dict, KEY_SD_SHEAR_VU, " kN") + r""" & --- \\[6pt]
+            r"\needspace{12\baselineskip}" + "\n"
+            + r"\multirow{8}{*}{\makecell{" + lbl + r"""}} & Applied Shear, $V_u$ & Governing LC (ULS) & """ + _render_value(bridge.output_dict, KEY_SD_SHEAR_VU, " kN") + r""" & --- \\[6pt]
 \cline{2-5}
  & Shear Area, $A_v$ & $d_w \times t_w$ & """ + _render_value(bridge.output_dict, KEY_SD_SHEAR_AV, " mm$^2$") + r""" & --- \\[6pt]
 \cline{2-5}
@@ -1059,6 +1067,36 @@ Fatigue Shear Resistance, $Q_r$ & IRC 22 Table 8 ($\phi d$, $N_{sc}$) & """
         _ed_shear_row,
     ]
     t522_content = "\n".join(_t522)
+    ur_chart_tex = ""
+    try:
+        def _chart_ur(row):
+            match = re.search(r"(?:\\textcolor\{red\}\{)?([0-9]+(?:\.[0-9]+)?)\}? \\\\\[", row)
+            return float(match.group(1)) if match else None
+        def _chart_rows(label, display):
+            return [(display, _chart_ur(row)) for row in _t522 if label in row]
+        groups = {
+            "Girders": _chart_rows("Girder --- Moment", "Moment") + _chart_rows("Girder --- Shear", "Shear")
+                       + _chart_rows("Girder --- LTB", "LTB") + _chart_rows("Girder --- Deflection", "Deflection")
+                       + _chart_rows("Girder --- Stress", "Stress") + _chart_rows("Girder --- Fatigue", "Fatigue"),
+            "Deck Slab": _chart_rows("Transverse Shear (slab)", "Transverse Shear")
+                       + _chart_rows("Crack Width (slab)", "Crack Width")
+                       + _chart_rows("Deck --- Flexure (sagging)", "Flexure (sagging)")
+                       + _chart_rows("Deck --- Flexure (hogging)", "Flexure (hogging)")
+                       + _chart_rows("Deck --- Cantilever Overhang", "Cantilever Overhang")
+                       + _chart_rows("Deck --- Punching Shear", "Punching Shear")
+                       + _chart_rows("Deck --- One-Way Shear", "One-Way Shear"),
+            "Cross Bracing": _chart_rows("Cross Bracing --- Compression", "Compression")
+                           + _chart_rows("Cross Bracing --- Tension", "Tension")
+                           + _chart_rows("Cross Bracing --- Slenderness", "Slenderness"),
+            "End Diaphragm": _chart_rows("End Diaphragm", "End Diaphragm"),
+        }
+        groups = {name: [(label, value) for label, value in values if value is not None]
+                  for name, values in groups.items()}
+        chart_path = os.path.join(tempfile.gettempdir(), "osdagbridge_ur.png")
+        if make_ur_chart(groups, chart_path):
+            ur_chart_tex = _fig_embed(chart_path, "Utilization Ratios by Design Check", width=r"0.9\textwidth")
+    except Exception as exc:
+        logger.warning("Could not create utilization-ratio chart: %s", exc)
 
     return add_repeating_longtable_headers(r"""
 \chapter{Design Checks}
@@ -1417,7 +1455,7 @@ Cross bracing between adjacent plate girders provides lateral stability during c
 \noindent\textit{Note: $A_g$ = gross cross-sectional area; $r_{min}$ = minimum radius of gyration.}
 
 \vspace{1em}
-\begin{longtable}{|C{2.2cm}|L{2.2cm}|L{2.5cm}|C{2.5cm}|C{2.5cm}|>{\centering\arraybackslash}p{3.6cm}|}
+\begin{longtable}{|C{2.0cm}|L{2.0cm}|L{2.2cm}|C{2.2cm}|C{2.2cm}|>{\centering\arraybackslash}p{3.0cm}|}
 \caption{\textbf{Cross Bracing --- Slenderness Ratio Check (IS~800 Cl.~3.8 )}}
 \hline
 \textbf{Panel} & \textbf{Member} & \textbf{Nature} & \textbf{Eff.\ Length $KL$ (mm)} & \textbf{$KL/r$} & \textbf{Limit / Status} \\[6pt]
@@ -1461,7 +1499,7 @@ End diaphragms at the supports transfer transverse loads to the bearings, restra
 \noindent\textit{Note: $A_g$ = gross cross-sectional area; $r_{min}$ = minimum radius of gyration.}
 
 \vspace{1em}
-\begin{longtable}{|C{2.2cm}|L{2.2cm}|L{2.5cm}|C{2.5cm}|C{2.5cm}|>{\centering\arraybackslash}p{3.6cm}|}
+\begin{longtable}{|C{2.0cm}|L{2.0cm}|L{2.2cm}|C{2.2cm}|C{2.2cm}|>{\centering\arraybackslash}p{3.0cm}|}
 \caption{\textbf{End Diaphragm --- Slenderness Ratio Check (IS~800 Cl.~3.8 )}}
 \hline
 \textbf{Panel} & \textbf{Member} & \textbf{Nature} & \textbf{Eff.\ Length $KL$ (mm)} & \textbf{$KL/r$} & \textbf{Limit / Status} \\[6pt]
@@ -1494,6 +1532,7 @@ End diaphragms at the supports transfer transverse loads to the bearings, restra
 \hline
 """ + t522_content + r"""
 \end{longtable}
-\noindent\textit{Note: UR = Demand / Capacity. All values $\leq 1.0$ indicate passing checks. The governing check for each component is highlighted in the individual design check sections above.}
+\noindent\textit{Note: UR = Demand / Capacity. Values $\leq 1.0$ pass; values above 1.0 fail. The governing check for each component is highlighted in the individual design check sections above.}
 
+""" + ur_chart_tex + r"""
 """)
