@@ -205,7 +205,6 @@ def preamble(project_name, job_number, report_date, report_version='Rev 0'):
 % Prevent tables from overflowing past the page bottom:
 % if fewer than 5 baseline-skips remain, break to the next page first.
 \BeforeBeginEnvironment{table}{\needspace{__TABLE_NEEDSPACE__}}
-\BeforeBeginEnvironment{longtable}{\needspace{__TABLE_NEEDSPACE__}}
 
 \definecolor{__OSDAG_GREEN_NAME__}{HTML}{__OSDAG_GREEN_HEX__}
 

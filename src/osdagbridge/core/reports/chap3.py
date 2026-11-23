@@ -101,7 +101,15 @@ def ch3_loads(input_dict):
             continue
         try:
             vehicle_data = vehicle_fn() if vehicle_fn else None
-            total_str = f"{sum(vehicle_data['wheel_loads']) / 1000.0:.2f}" if vehicle_data and vehicle_data.get('wheel_loads') else "N/A"
+            if not vehicle_data or not vehicle_data.get('wheel_loads'):
+                total_str = "N/A"
+            else:
+                raw_total = sum(vehicle_data['wheel_loads'])
+                if label == "Class A":
+                    total_str = "N/A"
+                else:
+                    scale = 1.0 if label == "Class SV" else 0.001
+                    total_str = f"{raw_total * scale:.2f}"
         except (KeyError, TypeError, ValueError):
             total_str = "N/A"
         if total_str == "N/A":
