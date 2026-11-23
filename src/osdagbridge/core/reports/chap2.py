@@ -70,7 +70,9 @@ from osdagbridge.core.utils.common import (
     KEY_WC_THICKNESS
 )
 
-from osdagbridge.core.reports.report_utils import _render_value, get_girder_entries, _tex
+from osdagbridge.core.reports.report_utils import (
+    _render_value, add_repeating_longtable_headers, get_girder_entries, _tex
+)
 
 def ch2_input_parameters(m, input_dict, output_dict=None):
     girder_entries = get_girder_entries(input_dict)
@@ -83,7 +85,7 @@ def ch2_input_parameters(m, input_dict, output_dict=None):
                       + r""" \\[6pt]
 \hline
 """)
-    return r"""
+    return add_repeating_longtable_headers(r"""
 \chapter{Input Parameters}
 
 \setlength{\abovecaptionskip}{2pt}
@@ -216,7 +218,7 @@ Where the user has modified additional inputs, those values are reported here. W
 
 """ + _shear_connector_table(input_dict, output_dict) + r"""
 
-""" + _safety_factors_table(input_dict)
+""" + _safety_factors_table(input_dict))
 
 
 def _girder_tables(input_dict, n_girders):
@@ -472,4 +474,3 @@ def _safety_factors_table(input_dict):
 \hline
 \end{longtable}
 """
-

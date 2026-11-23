@@ -5,7 +5,9 @@ from osdagbridge.core.utils.common import (
     KEY_SD_DEFL_LIVE,
     KEY_SD_DEFL_TOTAL,
 )
-from osdagbridge.core.reports.report_utils import _tex, _fig_embed
+from osdagbridge.core.reports.report_utils import (
+    _tex, _fig_embed, add_repeating_longtable_headers
+)
 
 if TYPE_CHECKING:
     from .report_generator import ReportDataBridge
@@ -75,7 +77,7 @@ def ch4_analysis(asum, fig_paths, bridge: "ReportDataBridge", span_m: float):
     _allow_total_str = f"L/600 = {_allow_total_mm:.1f} mm"
     _live_status     = ("PASS" if _live_mm  <= _allow_live_mm  else r"\textcolor{red}{FAIL}") if _live_mm  is not None else "---"
     _total_status    = ("PASS" if _total_mm <= _allow_total_mm else r"\textcolor{red}{FAIL}") if _total_mm is not None else "---"
-    return r"""
+    return add_repeating_longtable_headers(r"""
 \chapter{Analysis Results}
 
 A grillage model was used for structural analysis. The deck is idealized as a grid of elastic beam elements --- longitudinal members represent the composite steel girders with effective slab, and transverse members represent the slab or cross frames. This section summarizes the critical output from that analysis.
@@ -179,5 +181,4 @@ A grillage model was used for structural analysis. The deck is idealized as a gr
 """ + _fig_embed(fig_paths.get('bm_envelope'), 'Bending Moment Envelope (Envelope ULS): Max/min BM along span. X-axis: distance from left support (m). Y-axis: Bending Moment (kN-m).', width=r'0.75\textwidth') + r"""
 """ + _fig_embed(fig_paths.get('sf_envelope'), 'Shear Force Envelope (Envelope ULS): Max/min SF along span. X-axis: distance from left support (m). Y-axis: Shear Force (kN).', width=r'0.75\textwidth') + r"""
 """ + _fig_embed(fig_paths.get('defl_ll'), 'Vertical Deflection D$_y$ (1.0 LL): Maximum deflection along span. Load Case: 1.0 LL, Combination: $D_y$. Nodes shown. Isometric view.', width=r'0.75\textwidth') + r"""
-"""
-
+""")
