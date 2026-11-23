@@ -1,7 +1,6 @@
 from osdagbridge.core.utils.common import (
     KEY_MP_GD_MEMBER_ID,
     KEY_MP_GD_SELECT_GIRDER,
-    KEY_MP_GIRDER_DEPTH,
     KEY_TS_NO_OF_GIRDERS
 )
 

@@ -29,8 +29,6 @@ from osdagbridge.core.utils.common import (
     KEY_MP_ED_MEMBER_ID,
     KEY_MP_ED_SELECT_GIRDERS,
     KEY_MP_ED_TYPE,
-    KEY_MP_GD_MEMBER_ID,
-    KEY_MP_GD_SELECT_GIRDER,
     KEY_MP_GIRDER_BOTTOM_FLANGE_THICKNESS,
     KEY_MP_GIRDER_BOTTOM_FLANGE_WIDTH,
     KEY_MP_GIRDER_DEPTH,
@@ -229,7 +227,7 @@ def _girder_tables(input_dict, n_girders):
     n = n_girders if n_girders >= 1 else 1
     girder_entries = get_girder_entries(input_dict)
     if not girder_entries:
-        girder_entries = [(f"Girder {i}", f"M1") for i in range(1, n + 1)]
+        girder_entries = [(f"Girder {i}", "M1") for i in range(1, n + 1)]
     
     entries_for_table = [
         (lbl, mid, i)

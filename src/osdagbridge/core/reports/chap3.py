@@ -3,6 +3,8 @@
 # Extracted from report_generator.py — DO NOT add business logic here.
 # =============================================================================
 
+import logging
+
 from osdagbridge.core.utils.common import (
     KEY_CB_LOAD,
     KEY_LL_CUSTOM_VEHICLES,
@@ -16,6 +18,15 @@ from osdagbridge.core.utils.common import (
     KEY_LL_IRC_CLASS_A,
     KEY_LL_IRC_CLASS_FATIGUE,
     KEY_LL_IRC_CLASS_SV,
+    KEY_LL_ECCENTRICITY,
+    KEY_BL_IRC_CLASS_A,
+    KEY_BL_IRC_AA_WHEELED,
+    KEY_BL_IRC_AA_TRACKED,
+    KEY_BL_IRC_70R_WHEELED,
+    KEY_BL_IRC_70R_TRACKED,
+    KEY_BL_IRC_70R_BOGIE,
+    KEY_BL_IRC_CLASS_SV,
+    KEY_BL_IRC_CLASS_FATIGUE,
     KEY_MATERIAL_DECK_DENSITY,
     KEY_MATERIAL_GIRDER_DENSITY,
     KEY_PL_SELF_WEIGHT_FACTOR,
@@ -36,8 +47,6 @@ from osdagbridge.core.utils.common import (
     KEY_SPAN,
     KEY_TL_BRIDGE_TEMP_MAX,
     KEY_TL_BRIDGE_TEMP_MIN,
-    KEY_TL_HIGHEST_MAX_TEMP,
-    KEY_TL_LOWEST_MIN_TEMP,
     KEY_TL_TEMP_FALL,
     KEY_TL_TEMP_RISE,
     KEY_WC_LD_LANE_TABLE_COUNT,
@@ -57,67 +66,11 @@ from osdagbridge.core.reports.report_utils import (
     _tex, _render_value, add_repeating_longtable_headers
 )
 
-def ch3_loads(input_dict):
-    # Live load vehicle names mapping
-    vehicles = []
-    if input_dict.get(KEY_LL_IRC_CLASS_A):
-        vehicles.append("Class A")
-    if input_dict.get(KEY_LL_IRC_70R_WHEELED):
-        vehicles.append("Class 70R (Wheeled)")
-    if input_dict.get(KEY_LL_IRC_70R_TRACKED):
-        vehicles.append("Class 70R (Tracked)")
-    if input_dict.get(KEY_LL_IRC_AA_WHEELED):
-        vehicles.append("Class AA (Wheeled)")
-    if input_dict.get(KEY_LL_IRC_AA_TRACKED):
-        vehicles.append("Class AA (Tracked)")
-    if input_dict.get(KEY_LL_IRC_CLASS_SV):
-        vehicles.append("Class SV")
-    if input_dict.get(KEY_LL_IRC_70R_BOGIE):
-        vehicles.append("Class 70R (Bogie)")
-    if input_dict.get(KEY_LL_IRC_CLASS_FATIGUE):
-        vehicles.append("Class Fatigue")
-    
-    custom = input_dict.get(KEY_LL_CUSTOM_VEHICLES)
-    if custom and isinstance(custom, list):
-        for c in custom:
-            if isinstance(c, dict) and c.get('name'):
-                vehicles.append(c['name'])
-            elif isinstance(c, str):
-                vehicles.append(c)
-                
-    vehicles_str = ", ".join(vehicles) if vehicles else "None"
+logger = logging.getLogger(__name__)
 
+def ch3_loads(input_dict):
     from osdagbridge.core.utils.codes.irc6_2017 import IRC6_2017
     span = input_dict.get(KEY_SPAN)
-    impact_factor_str = ""
-    if span not in (None, ""):
-        try:
-            span_m = float(span)
-            factors = []
-            if input_dict.get(KEY_LL_IRC_CLASS_A):
-                im_a = IRC6_2017.cl_208_2_impact_factor(span_m)
-                factors.append(f"Class A: {1.0 + im_a:.3f}")
-            is_wheeled_heavy = (
-                input_dict.get(KEY_LL_IRC_70R_WHEELED) or 
-                input_dict.get(KEY_LL_IRC_AA_WHEELED) or 
-                input_dict.get(KEY_LL_IRC_70R_BOGIE)
-            )
-            is_tracked_heavy = (
-                input_dict.get(KEY_LL_IRC_70R_TRACKED) or 
-                input_dict.get(KEY_LL_IRC_AA_TRACKED)
-            )
-            if is_wheeled_heavy or is_tracked_heavy:
-                im_aa = IRC6_2017.cl_208_3_impact_factor(span_m)
-                factors.append(f"Class AA/70R: {1.0 + im_aa:.3f}")
-            
-            if factors:
-                impact_factor_str = ", ".join(factors)
-            else:
-                impact_factor_str = "N/A"
-        except Exception:
-            impact_factor_str = "N/A"
-    else:
-        impact_factor_str = "N/A"
 
     lanes = input_dict.get(KEY_WC_LD_LANE_TABLE_COUNT)
     braking_force_str = ""
@@ -132,6 +85,57 @@ def ch3_loads(input_dict):
     else:
         braking_force_str = "N/A"
 
+    vehicle_specs = [
+        (KEY_LL_IRC_CLASS_A, "Class A", IRC6_2017.cl_204_1_ClassA_vehicle, KEY_BL_IRC_CLASS_A, "light"),
+        (KEY_LL_IRC_70R_WHEELED, "Class 70R (Wheeled)", IRC6_2017.cl_204_1_Class70R_vehicle_wheel, KEY_BL_IRC_70R_WHEELED, "heavy"),
+        (KEY_LL_IRC_70R_TRACKED, "Class 70R (Tracked)", IRC6_2017.cl_204_1_Class70R_vehicle_track, KEY_BL_IRC_70R_TRACKED, "heavy"),
+        (KEY_LL_IRC_70R_BOGIE, "Class 70R (Bogie)", None, KEY_BL_IRC_70R_BOGIE, "heavy"),
+        (KEY_LL_IRC_AA_WHEELED, "Class AA (Wheeled)", None, KEY_BL_IRC_AA_WHEELED, "heavy"),
+        (KEY_LL_IRC_AA_TRACKED, "Class AA (Tracked)", None, KEY_BL_IRC_AA_TRACKED, "heavy"),
+        (KEY_LL_IRC_CLASS_SV, "Class SV", IRC6_2017.cl_204_5_1_special_vehicle, KEY_BL_IRC_CLASS_SV, None),
+        (KEY_LL_IRC_CLASS_FATIGUE, "Class Fatigue", IRC6_2017.cl_204_6_fatigue_load, KEY_BL_IRC_CLASS_FATIGUE, None),
+    ]
+    vehicle_rows = []
+    for key, label, vehicle_fn, braking_key, impact_class in vehicle_specs:
+        if not input_dict.get(key):
+            continue
+        try:
+            vehicle_data = vehicle_fn() if vehicle_fn else None
+            total_str = f"{sum(vehicle_data['wheel_loads']) / 1000.0:.2f}" if vehicle_data and vehicle_data.get('wheel_loads') else "N/A"
+        except (KeyError, TypeError, ValueError):
+            total_str = "N/A"
+        if total_str == "N/A":
+            logger.warning("Could not compute total live load for %s", label)
+        try:
+            span_value = float(span)
+            if impact_class == "light":
+                impact = IRC6_2017.cl_208_2_impact_factor(span_value)
+            elif impact_class == "heavy":
+                impact = IRC6_2017.cl_208_3_impact_factor(span_value)
+            else:
+                impact_str = "N/A"
+                impact = None
+            if impact is not None:
+                impact_str = f"{1.0 + impact:.3f}"
+        except (TypeError, ValueError):
+            impact_str = "N/A"
+        braking = "Yes" if input_dict.get(braking_key) else "No"
+        braking_value = braking_force_str if braking == "Yes" else "N/A"
+        vehicle_rows.append(
+            _tex(label) + " & " + total_str + " & " + _tex(impact_str) + " & "
+            + braking + " & " + _tex(braking_value)
+            + " & " + _tex(_render_value(input_dict, KEY_LL_ECCENTRICITY, " m")) + r" \\[6pt]"
+        )
+    custom_vehicles = input_dict.get(KEY_LL_CUSTOM_VEHICLES) or []
+    for custom in custom_vehicles:
+        label = custom.get('name') if isinstance(custom, dict) else custom
+        if not label:
+            continue
+        logger.warning("Could not compute total live load for custom vehicle %s", label)
+        vehicle_rows.append(
+            _tex(label) + r" & N/A & N/A & N/A & N/A & N/A \\[6pt]"
+        )
+    vehicle_rows_tex = "\n\\hline\n".join(vehicle_rows) or r"N/A & N/A & N/A & N/A & N/A & N/A \\[6pt]"
     fp_mode  = input_dict.get(KEY_LL_FOOTPATH_PRESSURE_MODE, "")
     fp_value = input_dict.get(KEY_LL_FOOTPATH_PRESSURE_VALUE, "")
     if str(fp_mode).strip().lower() in ("as per irc 6", "as per irc6", "automatic"):
@@ -143,6 +147,11 @@ def ch3_loads(input_dict):
         fp_str = f"{fp_value} kN/m²"
     else:
         fp_str = "N/A"
+    footpath_selected = str(fp_mode).strip().lower() not in ("", "none", "no")
+    footpath_rows_tex = (
+        r"\textnormal{Footpath Live Load} & " + _tex(fp_str) + r" \\[6pt]"
+        if footpath_selected else r"\multicolumn{2}{|l|}{\textit{No footpath selected.}} \\[6pt]"
+    )
 
     # Vz / Pz — prefer stored computed values; fall back to IRC6 Table 12
     vz_val = input_dict.get(KEY_WL_HOURLY_MEAN_WIND)
@@ -162,8 +171,6 @@ def ch3_loads(input_dict):
                 pz_val = _res.get("Pz")
         except Exception:
             pass
-    vz_str = f"{float(vz_val):.2f} m/s" if vz_val not in (None, "") else "N/A"
-    pz_str = f"{float(pz_val):.2f} N/m²" if pz_val not in (None, "") else "N/A"
 
     # Table 3.5 — Seismic: prefer stored computed values; fall back to IRC6 cl_218_5_1
     sl_zone_factor = input_dict.get(KEY_SL_ZONE_FACTOR)
@@ -198,27 +205,6 @@ def ch3_loads(input_dict):
                 sl_av          = round(_res.get("Ah", 0) * 2 / 3, 4)
         except Exception:
             pass
-
-    def _sl(v, unit=""):
-        return f"{float(v):.4f}{unit}" if v not in (None, "") else "N/A"
-
-    # Table 3.6 — Temperature: compute effective bridge temp range from shade temps
-    tl_temp_min = tl_temp_max = tl_rise = tl_fall = "N/A"
-    try:
-        _tmax = input_dict.get(KEY_TL_HIGHEST_MAX_TEMP) or input_dict.get('shade_temp_max')
-        _tmin = input_dict.get(KEY_TL_LOWEST_MIN_TEMP)  or input_dict.get('shade_temp_min')
-        if _tmax and _tmin:
-            _res    = IRC6_2017.cl_215_2_effective_bridge_temperature(
-                          float(_tmax), float(_tmin), 'metallic', False)
-            _bt_min = _res.get('T_min', 0)
-            _bt_max = _res.get('T_max', 0)
-            _mean   = (_bt_max + _bt_min) / 2.0
-            tl_temp_min = f"{_bt_min:.2f}"
-            tl_temp_max = f"{_bt_max:.2f}"
-            tl_rise     = f"{_bt_max - _mean:.2f}"
-            tl_fall     = f"{_mean - _bt_min:.2f}"
-    except Exception:
-        pass
 
     # --- Table 3.7: Load Combinations (dynamically generated from IRC 6) ---
     _LOAD_LABEL_MAP = {
@@ -302,18 +288,23 @@ This section summarizes all loads applied to the bridge and the load combination
 \end{longtable}
 
 \vspace{1em}
+\begin{longtable}{|L{2.8cm}|C{2.2cm}|C{2.3cm}|C{2.5cm}|C{2.0cm}|C{2.5cm}|}
+\caption{\textbf{Vehicle Live Loads (LL)}}
+\hline
+\textbf{Vehicle} & \textbf{Total Load (kN)} & \textbf{Impact Factor} & \multicolumn{3}{c|}{\textbf{Braking Load}} \\
+\cline{4-6}
+ &  &  & \textbf{Considered?} & \textbf{Value (kN)} & \textbf{Eccentricity (m)} \\
+\hline
+""" + vehicle_rows_tex + r"""
+\hline
+\end{longtable}
+
 \begin{longtable}{|L{5.5cm}|p{10.0cm}|}
-\caption{\textbf{Live Loads (LL)}}
+\caption{\textbf{Footpath Live Load}}
 \hline
 \textbf{parameter} & \textbf{value} \\
 \hline
-\textnormal{Vehicles Considered} & """ + _tex(vehicles_str) + r""" \\[6pt]
-\hline
-\textnormal{Impact Factor (IRC 6)} & """ + _tex(impact_factor_str) + r""" \\[6pt]
-\hline
-\textnormal{Braking Load (IRC 6)} & """ + _tex(braking_force_str) + r""" \\[6pt]
-\hline
-\textnormal{Footpath Live Load (if applicable)} & """ + (_render_value(input_dict, KEY_LL_FOOTPATH_PRESSURE_VALUE, ' kN/m\\textsuperscript{2}')) + r""" \\[6pt]
+""" + footpath_rows_tex + r"""
 \hline
 \end{longtable}
 
@@ -394,4 +385,3 @@ This section summarizes all loads applied to the bridge and the load combination
 
 \noindent\textit{Note: All IRC 6 load combinations are auto-generated by OsdagBridge. User-defined custom combinations, if any, are appended.}
 """)
-

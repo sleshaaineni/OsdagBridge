@@ -77,6 +77,16 @@ def ch4_analysis(asum, fig_paths, bridge: "ReportDataBridge", span_m: float):
     _allow_total_str = f"L/600 = {_allow_total_mm:.1f} mm"
     _live_status     = ("PASS" if _live_mm  <= _allow_live_mm  else r"\textcolor{red}{FAIL}") if _live_mm  is not None else "---"
     _total_status    = ("PASS" if _total_mm <= _allow_total_mm else r"\textcolor{red}{FAIL}") if _total_mm is not None else "---"
+
+    reaction_cells = []
+    for lc in ("Envelope ULS", "Envelope SLS", "1.0 DL"):
+        values = rxn_summary.get(lc, {}) or {}
+        left = _fmt(values.get('left_kN')) if values.get('left_kN') is not None else "N/A"
+        right = _fmt(values.get('right_kN')) if values.get('right_kN') is not None else "N/A"
+        label = _tex(lc)
+        reaction_cells.append(label + r" & " + left + r" & " + right + r" \\[6pt]")
+    reaction_rows_tex = "\n\\hline\n".join(reaction_cells)
+
     return add_repeating_longtable_headers(r"""
 \chapter{Analysis Results}
 
@@ -148,11 +158,7 @@ A grillage model was used for structural analysis. The deck is idealized as a gr
 \hline
 \textbf{Load Case} & \textbf{Left Support (kN)} & \textbf{Right Support (kN)} \\[6pt]
 \hline
- & """ + '' + r""" & """ + '' + r""" \\[6pt]
-\hline
- & """ + '' + r""" & """ + '' + r""" \\[6pt]
-\hline
- & """ + '' + r""" & """ + '' + r""" \\[6pt]
+""" + reaction_rows_tex + r"""
 \hline
 \end{longtable}
 

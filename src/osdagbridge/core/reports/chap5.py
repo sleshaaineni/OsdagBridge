@@ -134,7 +134,6 @@ from osdagbridge.core.utils.common import (
     KEY_SPAN,
     KEY_TS_DECK_OVERHANG,
     KEY_TS_DECK_THICKNESS,
-    KEY_TS_NO_OF_GIRDERS,
     KEY_UTIL_FLEXURE,
     KEY_UTIL_INTERACTION,
     KEY_UTIL_LTB,
@@ -158,11 +157,6 @@ def ch5_design_checks(checks_data, bridge) -> str:
         Provides input_dict, output_dict, and helper methods.
     """
     girder_entries = get_girder_entries(bridge.input_dict)
-    if not girder_entries:
-        n = int(bridge.input_dict.get(KEY_TS_NO_OF_GIRDERS, 1))
-        girder_entries = [(f"Girder {i}", f"M1") for i in range(1, n + 1)]
-    n_girders = len(girder_entries)
-
     # Deck slab design report values (Tables 5.17(a)-(g)), keyed to
     # common.KEY_DD_*. Populated by deckdesign.design_deck_slab(); empty
     # dict when deck design has not been run. Look up with deck_rpt.get(KEY_...).
@@ -865,7 +859,6 @@ Fatigue Shear Resistance, $Q_r$ & IRC 22 Table 8 ($\phi d$, $N_{sc}$) & """
     #  (3) Cross bracing: existing get_cb_* helpers (worst pair/member by UR).
     #      End diaphragm has no report helpers yet → "---" for now.
     _pg_522 = (bridge.output_dict.get("design_results", {}) or {}).get("per_girder", {}) or {}
-    _dd_522 = bridge.output_dict.get("deck_design_results", {}) or {}
 
     def _vu_522(v, unit):
         s = _dfmt(v, nd=2)
