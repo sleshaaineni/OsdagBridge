@@ -119,6 +119,7 @@ from osdagbridge.core.utils.common import (
 )
 
 from osdagbridge.core.reports.report_utils import _tex
+from osdagbridge.core.reports import styles
 from .executive_summary import executive_summary
 from .chap1 import ch1_project_info
 from .chap2 import ch2_input_parameters
@@ -152,11 +153,11 @@ def preamble(project_name, job_number, report_date, report_version='Rev 0'):
     jn = _tex(job_number)
     rd = _tex(report_date)
     rv = _tex(report_version)
-    return r"""
-\documentclass[12pt,a4paper]{report}
+    preamble_template = r"""
+\documentclass[__DOCUMENT_FONT_SIZE__,__PAGE_SIZE__]{report}
 
 % Packages
-\usepackage[a4paper, margin=1in]{geometry}
+\usepackage[__PAGE_SIZE__, margin=__PAGE_MARGIN__]{geometry}
 \usepackage{graphicx}
 \usepackage{amsmath}
 \usepackage{amssymb}
@@ -193,28 +194,28 @@ def preamble(project_name, job_number, report_date, report_version='Rev 0'):
 \numberwithin{table}{chapter}
 \numberwithin{figure}{chapter}
 % Table layout and spacing: consistent padding, row height, and longtable pre/post skips
-\setlength{\tabcolsep}{6pt}
-\renewcommand{\arraystretch}{1.12}
-\setlength{\LTpre}{0pt}
-\setlength{\LTpost}{6pt}
+\setlength{\tabcolsep}{__TABLE_COL_PADDING__}
+\renewcommand{\arraystretch}{__TABLE_ROW_STRETCH__}
+\setlength{\LTpre}{__LONGTABLE_PRE_SKIP__}
+\setlength{\LTpost}{__LONGTABLE_POST_SKIP__}
 % Table rules (outline thickness) and small extra row height for clarity
-\setlength{\arrayrulewidth}{0.5pt}
-\setlength{\extrarowheight}{0.6pt}
+\setlength{\arrayrulewidth}{__TABLE_RULE_WIDTH__}
+\setlength{\extrarowheight}{__TABLE_EXTRA_ROW_HEIGHT__}
 
 % Prevent tables from overflowing past the page bottom:
 % if fewer than 5 baseline-skips remain, break to the next page first.
-\BeforeBeginEnvironment{table}{\needspace{5\baselineskip}}
-\BeforeBeginEnvironment{longtable}{\needspace{5\baselineskip}}
+\BeforeBeginEnvironment{table}{\needspace{__TABLE_NEEDSPACE__}}
+\BeforeBeginEnvironment{longtable}{\needspace{__TABLE_NEEDSPACE__}}
 
-\definecolor{osdagGreen}{HTML}{91B014}
+\definecolor{__OSDAG_GREEN_NAME__}{HTML}{__OSDAG_GREEN_HEX__}
 
 \fancypagestyle{main}{
   \fancyhf{}
   \fancyhead[L]{""" + pn + r""" $|$ """ + jn + r"""}
   \fancyhead[R]{""" + rd + r""" $|$ """ + rv + r"""}
-  \fancyfoot[L]{Osdag $|$ FOSSEE $|$ Indian Institute of Technology Bombay}
-  \fancyfoot[R]{Page \thepage\ of \pageref{LastPage}}
-  \renewcommand{\headrule}{\color{osdagGreen}\hrule width\headwidth height 1pt \vspace{2pt}}
+  \fancyfoot[L]{__HEADER_FOOTER_TEXT__}
+  \fancyfoot[R]{__PAGE_NUMBER_FORMAT__}
+  \renewcommand{\headrule}{\color{__HEADER_RULE_COLOR__}\hrule width\headwidth height __HEADER_RULE_HEIGHT__ \vspace{__HEADER_RULE_VSPACE__}}
   \renewcommand{\footrule}{%
     \ifbool{hasSDonPage}{%
       \vspace{-20pt}%
@@ -223,16 +224,16 @@ def preamble(project_name, job_number, report_date, report_version='Rev 0'):
     }{%
       \vspace{-8pt}%
     }%
-    \color{osdagGreen}\hrule width\headwidth height 1pt \vspace{6pt}%
+    \color{__FOOTER_RULE_COLOR__}\hrule width\headwidth height __HEADER_RULE_HEIGHT__ \vspace{__FOOTER_RULE_VSPACE__}%
   }
 }
 \fancypagestyle{plain}{
   \fancyhf{}
   \fancyhead[L]{""" + pn + r""" $|$ """ + jn + r"""}
   \fancyhead[R]{""" + rd + r""" $|$ """ + rv + r"""}
-  \fancyfoot[L]{Osdag $|$ FOSSEE $|$ Indian Institute of Technology Bombay}
-  \fancyfoot[R]{Page \thepage\ of \pageref{LastPage}}
-  \renewcommand{\headrule}{\color{osdagGreen}\hrule width\headwidth height 1pt \vspace{2pt}}
+  \fancyfoot[L]{__HEADER_FOOTER_TEXT__}
+  \fancyfoot[R]{__PAGE_NUMBER_FORMAT__}
+  \renewcommand{\headrule}{\color{__HEADER_RULE_COLOR__}\hrule width\headwidth height __HEADER_RULE_HEIGHT__ \vspace{__HEADER_RULE_VSPACE__}}
   \renewcommand{\footrule}{%
     \ifbool{hasSDonPage}{%
       \vspace{-20pt}%
@@ -241,18 +242,18 @@ def preamble(project_name, job_number, report_date, report_version='Rev 0'):
     }{%
       \vspace{-8pt}%
     }%
-    \color{osdagGreen}\hrule width\headwidth height 1pt \vspace{6pt}%
+    \color{__FOOTER_RULE_COLOR__}\hrule width\headwidth height __HEADER_RULE_HEIGHT__ \vspace{__FOOTER_RULE_VSPACE__}%
   }
 }
 \fancypagestyle{firstpage}{
   \fancyhf{}
   \renewcommand{\headrulewidth}{0pt}
-  \fancyfoot[L]{Osdag $|$ FOSSEE $|$ Indian Institute of Technology Bombay}
-  \fancyfoot[R]{Page \thepage\ of \pageref{LastPage}}
-  \renewcommand{\footrule}{\vspace{-8pt}\color{osdagGreen}\hrule width\headwidth height 1pt \vspace{6pt}}
+  \fancyfoot[L]{__HEADER_FOOTER_TEXT__}
+  \fancyfoot[R]{__PAGE_NUMBER_FORMAT__}
+  \renewcommand{\footrule}{\vspace{-8pt}\color{__FOOTER_RULE_COLOR__}\hrule width\headwidth height __HEADER_RULE_HEIGHT__ \vspace{__FOOTER_RULE_VSPACE__}}
 }
 \pagestyle{main}
-\setstretch{1.15}
+\setstretch{__DOCUMENT_LINE_STRETCH__}
 
 % Custom Commands
 \newcommand{\placeholder}[1]{\textit{\textless #1\textgreater}}
@@ -275,6 +276,31 @@ def preamble(project_name, job_number, report_date, report_version='Rev 0'):
 
 \begin{document}
 """
+    replacements = {
+        '__DOCUMENT_FONT_SIZE__': styles.DOCUMENT_FONT_SIZE,
+        '__PAGE_SIZE__': styles.PAGE_SIZE,
+        '__PAGE_MARGIN__': styles.PAGE_MARGIN,
+        '__TABLE_COL_PADDING__': styles.TABLE_COL_PADDING,
+        '__TABLE_ROW_STRETCH__': styles.TABLE_ROW_STRETCH,
+        '__LONGTABLE_PRE_SKIP__': styles.LONGTABLE_PRE_SKIP,
+        '__LONGTABLE_POST_SKIP__': styles.LONGTABLE_POST_SKIP,
+        '__TABLE_RULE_WIDTH__': styles.TABLE_RULE_WIDTH,
+        '__TABLE_EXTRA_ROW_HEIGHT__': styles.TABLE_EXTRA_ROW_HEIGHT,
+        '__TABLE_NEEDSPACE__': styles.TABLE_NEEDSPACE,
+        '__OSDAG_GREEN_NAME__': styles.OSDAG_GREEN_NAME,
+        '__OSDAG_GREEN_HEX__': styles.OSDAG_GREEN_HEX,
+        '__HEADER_FOOTER_TEXT__': styles.HEADER_FOOTER_TEXT,
+        '__PAGE_NUMBER_FORMAT__': styles.PAGE_NUMBER_FORMAT,
+        '__DOCUMENT_LINE_STRETCH__': styles.DOCUMENT_LINE_STRETCH,
+        '__HEADER_RULE_COLOR__': styles.HEADER_RULE_COLOR,
+        '__HEADER_RULE_HEIGHT__': styles.HEADER_RULE_HEIGHT,
+        '__HEADER_RULE_VSPACE__': styles.HEADER_RULE_VSPACE,
+        '__FOOTER_RULE_COLOR__': styles.FOOTER_RULE_COLOR,
+        '__FOOTER_RULE_VSPACE__': styles.FOOTER_RULE_VSPACE,
+    }
+    for token, value in replacements.items():
+        preamble_template = preamble_template.replace(token, value)
+    return preamble_template
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
