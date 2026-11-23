@@ -6,6 +6,107 @@ from osdagbridge.core.utils.common import (
 )
 
 
+def add_repeating_longtable_headers(document):
+    """Add continuation headers to raw longtables in a chapter fragment.
+
+    The report chapters are assembled as LaTeX strings rather than PyLaTeX
+    objects.  Existing tables therefore already contain their captions and
+    header rows, but need the ``longtable`` head markers added around them.
+    This function copies the original header into the continuation head and
+    leaves captions/table numbering untouched.
+    """
+    output = []
+    cursor = 0
+    begin = r"\begin{longtable}{"
+    end = r"\end{longtable}"
+
+    while True:
+        start = document.find(begin, cursor)
+        if start < 0:
+            output.append(document[cursor:])
+            break
+        output.append(document[cursor:start])
+        finish = document.find(end, start)
+        if finish < 0:
+            output.append(document[start:])
+            break
+        finish += len(end)
+        table = document[start:finish]
+
+        if r"\endfirsthead" in table:
+            output.append(table)
+            cursor = finish
+            continue
+
+        caption_end = table.find("\n", table.find(r"\caption{"))
+        if caption_end < 0:
+            output.append(table)
+            cursor = finish
+            continue
+        first_hline = table.find(r"\hline", caption_end)
+        second_hline = table.find(r"\hline", first_hline + len(r"\hline"))
+        if first_hline < 0 or second_hline < 0:
+            output.append(table)
+            cursor = finish
+            continue
+
+        hline = r"\hline"
+        replacement = (
+            table[:second_hline + len(hline)]
+            + "\n\\endfirsthead\n"
+            + r"\multicolumn{1}{l}{\textit{Table \thetable\ (continued)}}\\"
+            + "\n"
+            + table[first_hline:second_hline + len(hline)]
+            + "\n\\endhead"
+            + table[second_hline + len(hline):]
+        )
+        output.append(replacement)
+        cursor = finish
+
+    return "".join(output)
+
+
+def make_longtable(spec, caption, header, rows, continued_caption=None,
+                   footer=None):
+    """Build a longtable with a repeated header and stable table numbering.
+
+    ``caption`` is emitted only in the first head.  Continuation pages use
+    plain text containing ``\\thetable`` instead of a second ``\\caption`` so
+    the table counter is not incremented.
+    """
+    continued_caption = continued_caption or r"Table \thetable\ (continued)"
+    footer = footer or r"\multicolumn{1}{r}{\textit{Continued on next page}} \\"
+    return (
+        r"\begin{longtable}{" + spec + r"}" + "\n"
+        + r"\caption{" + caption + r"}\\" + "\n"
+        + header + "\n"
+        + r"\endfirsthead" + "\n\n"
+        + r"\multicolumn{" + _longtable_column_count(spec) + r"}{l}{\textbf{" + continued_caption + r"}}\\" + "\n"
+        + header + "\n"
+        + r"\endhead" + "\n\n"
+        + footer + "\n"
+        + r"\endfoot" + "\n"
+        + rows + "\n"
+        + r"\end{longtable}"
+    )
+
+
+def _longtable_column_count(spec):
+    """Return a usable column count for a simple LaTeX column specification."""
+    count = 0
+    depth = 0
+    i = 0
+    while i < len(spec):
+        if spec[i] == "{":
+            depth += 1
+        elif spec[i] == "}":
+            depth = max(depth - 1, 0)
+        elif depth == 0 and spec[i] in "lcrpmbLCRPMB":
+            count += 1
+        i += 1
+    return str(max(count, 1))
+
+
 def _tex(value):
     """Escape a Python value for safe LaTeX embedding."""
     s = str(value) if value is not None else ''
@@ -111,5 +212,3 @@ def _fig_embed(path, caption, width=r'\textwidth', height=None):
     return (r'\noindent\fbox{\parbox{0.97\textwidth}{' + '\n'
             r'\textit{[ PLACEHOLDER: ' + caption + r' ]}' + '\n'
             r'}}')
-
-

@@ -141,7 +141,9 @@ from osdagbridge.core.utils.common import (
     KEY_UTIL_SHEAR
 )
 
-from osdagbridge.core.reports.report_utils import _tex, _render_value, get_girder_entries
+from osdagbridge.core.reports.report_utils import (
+    _tex, _render_value, add_repeating_longtable_headers, get_girder_entries
+)
 
 if TYPE_CHECKING:
     pass
@@ -1065,7 +1067,7 @@ Fatigue Shear Resistance, $Q_r$ & IRC 22 Table 8 ($\phi d$, $N_{sc}$) & """
     ]
     t522_content = "\n".join(_t522)
 
-    return r"""
+    return add_repeating_longtable_headers(r"""
 \chapter{Design Checks}
 
 This section presents all structural design checks performed by OsdagBridge. For each member, the demand from the governing load combination, the code-based capacity, and the utilization ratio are tabulated. All checks reference IS 800:2007 and IRC 22:2014 unless stated otherwise.
@@ -1501,5 +1503,4 @@ End diaphragms at the supports transfer transverse loads to the bearings, restra
 \end{longtable}
 \noindent\textit{Note: UR = Demand / Capacity. All values $\leq 1.0$ indicate passing checks. The governing check for each component is highlighted in the individual design check sections above.}
 
-"""
-
+""")
